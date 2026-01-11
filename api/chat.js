@@ -110,12 +110,38 @@ export default async (req, res) => {
       messages: messages
     });
 
-    // ストリームからチャンクを読み取り、SSE形式で送信
+    // ストリームからチャンクを読み取り、改行までバッファにためて送信
+    let buffer = '';
+    
     for await (const chunk of stream) {
       if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
-        // テキストチャンクをそのまま送信（ストリーミング表示）
-        res.write(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`);
+        const text = chunk.delta.text;
+        buffer += text;
+        
+        // 改行が来たら送信
+        if (buffer.includes('\n')) {
+          const lines = buffer.split('\n');
+          
+          // 改行前の部分を送信
+          if (lines[0].trim()) {
+            res.write(`data: ${JSON.stringify({ 
+              text: lines[0], 
+              complete: true 
+            })}\n\n`);
+          }
+          
+          // 改行以降をバッファに残す
+          buffer = lines.slice(1).join('\n');
+        }
       }
+    }
+    
+    // 最後に残ったテキストを送信
+    if (buffer.trim()) {
+      res.write(`data: ${JSON.stringify({ 
+        text: buffer, 
+        complete: true 
+      })}\n\n`);
     }
 
     // ストリーム終了を通知

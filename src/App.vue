@@ -27,7 +27,8 @@
               'max-w-[80%] rounded-2xl px-4 py-3',
               msg.role === 'user'
                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                : 'bg-gray-100 text-gray-800'
+                : 'bg-gray-100 text-gray-800',
+              msg.fadeIn ? 'fade-in' : ''
             ]"
           >
             <p class="whitespace-pre-wrap break-words">{{ msg.content }}</p>
@@ -95,14 +96,6 @@ const sendMessage = async () => {
 
   inputText.value = '';
   isLoading.value = true;
-  
-  // アシスタントのメッセージを事前に追加（空の状態）
-  let currentMessageIndex = messages.value.length;
-  messages.value.push({
-    role: 'assistant',
-    content: '',
-  });
-
   await scrollToBottom();
 
   try {
@@ -113,7 +106,7 @@ const sendMessage = async () => {
       },
       body: JSON.stringify({
         message: userMessage,
-        history: messages.value.slice(0, -1).map(msg => ({
+        history: messages.value.map(msg => ({
           role: msg.role,
           content: msg.content,
         })),
@@ -156,15 +149,27 @@ const sendMessage = async () => {
               break;
             }
             
-            // テキストチャンクを通常通り追加（ストリーミング表示）
-            if (data.text !== undefined) {
-              messages.value[currentMessageIndex].content += data.text;
+            // complete: trueのデータを受信したら、新しい吹き出しを作成
+            if (data.complete && data.text && data.text.trim()) {
+              // 新しい吹き出しを作成
+              messages.value.push({
+                role: 'assistant',
+                content: data.text,
+                fadeIn: true  // アニメーション用フラグ
+              });
+              
+              // 自動スクロール
+              await nextTick();
               await scrollToBottom();
               
-              // 改行・句読点に応じた待機時間
-              const delay = data.text.includes('\n') ? 500 : 
-                           /[。！？、]/.test(data.text) ? 200 : 100;
-              await new Promise(resolve => setTimeout(resolve, delay));
+              // 1.5秒待つ
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              // アニメーション用フラグを削除（次のメッセージのために）
+              const lastIndex = messages.value.length - 1;
+              if (messages.value[lastIndex]) {
+                // フラグは次のTickで削除されるので、ここでは保持
+              }
             }
           } catch (e) {
             // JSONパースエラーは無視（不完全なデータの場合）
@@ -182,15 +187,17 @@ const sendMessage = async () => {
           try {
             const data = JSON.parse(line.slice(6));
             
-            // テキストチャンクを通常通り追加
-            if (data.text !== undefined) {
-              messages.value[currentMessageIndex].content += data.text;
-              await scrollToBottom();
+            // complete: trueのデータを受信したら、新しい吹き出しを作成
+            if (data.complete && data.text && data.text.trim()) {
+              messages.value.push({
+                role: 'assistant',
+                content: data.text,
+                fadeIn: true
+              });
               
-              // 改行・句読点に応じた待機時間
-              const delay = data.text.includes('\n') ? 500 : 
-                           /[。！？、]/.test(data.text) ? 200 : 100;
-              await new Promise(resolve => setTimeout(resolve, delay));
+              await nextTick();
+              await scrollToBottom();
+              await new Promise(resolve => setTimeout(resolve, 1500));
             }
           } catch (e) {
             console.error('Error parsing final SSE data:', e);
@@ -202,9 +209,12 @@ const sendMessage = async () => {
   } catch (error) {
     console.error('Error sending message:', error);
     // エラーメッセージを表示
-    if (messages.value[currentMessageIndex]) {
-      messages.value[currentMessageIndex].content = 'すみません、エラーが発生しました。もう一度お試しください。';
-    }
+    messages.value.push({
+      role: 'assistant',
+      content: 'すみません、エラーが発生しました。もう一度お試しください。',
+      fadeIn: true
+    });
+    await scrollToBottom();
   } finally {
     isLoading.value = false;
     await scrollToBottom();
