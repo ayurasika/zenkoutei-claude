@@ -96,27 +96,43 @@ export default async (req, res) => {
       content: message
     });
 
-    // Claude APIを呼び出し
-    const response = await anthropic.messages.create({
+    // SSEヘッダーを設定
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Nginx用の設定
+
+    // Claude APIをストリーミングで呼び出し
+    const stream = await anthropic.messages.stream({
       model: 'claude-3-5-haiku-20241022',
       max_tokens: 1024,
       system: systemPrompt,
       messages: messages
     });
 
-    // レスポンスからテキストを取得
-    const text = response.content[0].text;
+    // ストリームからチャンクを読み取り、SSE形式で送信
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
+        // テキストチャンクをそのまま送信（ストリーミング表示）
+        res.write(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`);
+      }
+    }
 
-    res.json({ 
-      message: text,
-      success: true
-    });
+    // ストリーム終了を通知
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.end();
 
   } catch (error) {
     console.error('Error calling Claude API:', error);
-    res.status(500).json({ 
-      error: 'Failed to get response from AI',
-      details: error.message 
-    });
+    
+    // エラーもSSE形式で送信
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+    }
+    
+    res.write(`data: ${JSON.stringify({ error: 'Failed to get response from AI', details: error.message })}\n\n`);
+    res.end();
   }
 };

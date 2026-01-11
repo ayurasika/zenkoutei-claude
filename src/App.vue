@@ -95,6 +95,14 @@ const sendMessage = async () => {
 
   inputText.value = '';
   isLoading.value = true;
+  
+  // アシスタントのメッセージを事前に追加（空の状態）
+  let currentMessageIndex = messages.value.length;
+  messages.value.push({
+    role: 'assistant',
+    content: '',
+  });
+
   await scrollToBottom();
 
   try {
@@ -105,29 +113,98 @@ const sendMessage = async () => {
       },
       body: JSON.stringify({
         message: userMessage,
-        history: messages.value.map(msg => ({
+        history: messages.value.slice(0, -1).map(msg => ({
           role: msg.role,
           content: msg.content,
         })),
       }),
     });
 
-    const data = await response.json();
-
-    if (data.success && data.message) {
-      messages.value.push({
-        role: 'assistant',
-        content: data.message,
-      });
-    } else {
-      throw new Error(data.error || 'Failed to get response');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        break;
+      }
+
+      // デコードしてバッファに追加
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE形式のデータを解析
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // 最後の不完全な行をバッファに戻す
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            
+            if (data.done) {
+              // ストリーム終了
+              break;
+            }
+            
+            // テキストチャンクを通常通り追加（ストリーミング表示）
+            if (data.text !== undefined) {
+              messages.value[currentMessageIndex].content += data.text;
+              await scrollToBottom();
+              
+              // 改行・句読点に応じた待機時間
+              const delay = data.text.includes('\n') ? 500 : 
+                           /[。！？、]/.test(data.text) ? 200 : 100;
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          } catch (e) {
+            // JSONパースエラーは無視（不完全なデータの場合）
+            console.error('Error parsing SSE data:', e);
+          }
+        }
+      }
+    }
+
+    // 残りのバッファを処理
+    if (buffer.trim()) {
+      const lines = buffer.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            
+            // テキストチャンクを通常通り追加
+            if (data.text !== undefined) {
+              messages.value[currentMessageIndex].content += data.text;
+              await scrollToBottom();
+              
+              // 改行・句読点に応じた待機時間
+              const delay = data.text.includes('\n') ? 500 : 
+                           /[。！？、]/.test(data.text) ? 200 : 100;
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          } catch (e) {
+            console.error('Error parsing final SSE data:', e);
+          }
+        }
+      }
+    }
+
   } catch (error) {
     console.error('Error sending message:', error);
-    messages.value.push({
-      role: 'assistant',
-      content: 'すみません、エラーが発生しました。もう一度お試しください。',
-    });
+    // エラーメッセージを表示
+    if (messages.value[currentMessageIndex]) {
+      messages.value[currentMessageIndex].content = 'すみません、エラーが発生しました。もう一度お試しください。';
+    }
   } finally {
     isLoading.value = false;
     await scrollToBottom();
@@ -138,4 +215,3 @@ onMounted(() => {
   scrollToBottom();
 });
 </script>
-
