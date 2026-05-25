@@ -1,81 +1,120 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
-    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col h-[80vh]">
-      <!-- ヘッダー -->
-      <div class="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 p-6 text-white">
-        <h1 class="text-3xl font-bold text-center">✨ 全肯定さん ✨</h1>
-        <p class="text-center mt-2 opacity-90">どんな小さな一歩も応援します！</p>
+  <div class="min-h-screen bg-cream flex flex-col font-jp text-stone-700">
+    <!-- 上部マスコットエリア（タイトルなし） -->
+    <header class="flex flex-col items-center pt-10 pb-4 shrink-0">
+      <img
+        :src="mascotImage"
+        :key="mascotState"
+        alt=""
+        class="w-28 h-28 object-contain fade-in"
+      />
+    </header>
+
+    <!-- チャットエリア -->
+    <main
+      ref="chatContainer"
+      class="flex-1 overflow-y-auto px-6 pb-40 max-w-xl w-full mx-auto"
+    >
+      <div v-if="messages.length === 0" class="text-center text-stone-400 mt-12 text-sm leading-relaxed">
+        <p>きょうは、どんな一日でしたか。</p>
       </div>
 
-      <!-- チャットエリア -->
-      <div ref="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-4">
-        <div v-if="messages.length === 0" class="text-center text-gray-500 mt-8">
-          <p class="text-lg">こんにちは！今日は何をされましたか？</p>
-          <p class="text-sm mt-2">どんな小さなことでも褒めますよ 😊</p>
-        </div>
-
+      <div class="space-y-5">
         <div
           v-for="(msg, index) in messages"
           :key="index"
-          :class="[
-            'flex',
-            msg.role === 'user' ? 'justify-end' : 'justify-start'
-          ]"
+          :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']"
         >
           <div
             :class="[
-              'max-w-[80%] rounded-2xl px-4 py-3',
+              'max-w-[78%] px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap break-words',
               msg.role === 'user'
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                : 'bg-gray-100 text-gray-800',
+                ? 'bg-paleblue text-stone-700 rounded-2xl rounded-br-md'
+                : 'bg-white text-stone-700 rounded-2xl rounded-bl-md border border-stone-100',
               msg.fadeIn ? 'fade-in' : ''
             ]"
           >
-            <p class="whitespace-pre-wrap break-words">{{ msg.content }}</p>
+            {{ msg.content }}
           </div>
         </div>
 
         <div v-if="isLoading" class="flex justify-start">
-          <div class="bg-gray-100 rounded-2xl px-4 py-3">
-            <div class="flex space-x-2">
-              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+          <div class="bg-white border border-stone-100 rounded-2xl rounded-bl-md px-4 py-3">
+            <div class="flex space-x-1.5">
+              <div class="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce"></div>
+              <div class="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+              <div class="w-1.5 h-1.5 bg-stone-300 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
             </div>
           </div>
         </div>
       </div>
+    </main>
 
-      <!-- 入力エリア -->
-      <div class="border-t border-gray-200 p-4 bg-gray-50">
-        <form @submit.prevent="sendMessage" class="flex space-x-3">
-          <input
-            v-model="inputText"
-            type="text"
-            placeholder="メッセージを入力..."
-            class="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            :disabled="isLoading"
-          />
-          <button
-            type="submit"
-            :disabled="isLoading || !inputText.trim()"
-            class="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            送信
-          </button>
-        </form>
-      </div>
+    <!-- 入力エリア（タブの真上に固定） -->
+    <div class="fixed bottom-14 left-0 right-0 bg-cream/95 backdrop-blur-sm border-t border-stone-100">
+      <form
+        @submit.prevent="sendMessage"
+        class="max-w-xl mx-auto flex items-center gap-3 px-5 py-3"
+      >
+        <input
+          v-model="inputText"
+          type="text"
+          placeholder="きょうのことを、すこしだけ。"
+          class="flex-1 px-4 py-2.5 bg-white border border-stone-200 rounded-full text-[14px] placeholder:text-stone-300 focus:outline-none focus:border-stone-300"
+          :disabled="isLoading"
+        />
+        <button
+          type="submit"
+          :disabled="isLoading || !inputText.trim()"
+          class="w-10 h-10 flex items-center justify-center bg-paleblue rounded-full text-stone-600 disabled:opacity-40 transition-opacity"
+          aria-label="送信"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"/>
+            <polyline points="5 12 12 5 19 12"/>
+          </svg>
+        </button>
+      </form>
     </div>
+
+    <!-- 下部タブメニュー（見た目のみ） -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-100 h-14 flex items-center justify-around">
+      <button class="flex flex-col items-center text-stone-500 text-[10px]" aria-label="きろく">
+        <span class="text-base leading-none">○</span>
+        <span class="mt-0.5">きろく</span>
+      </button>
+      <button class="flex flex-col items-center text-stone-400 text-[10px]" aria-label="はなす">
+        <span class="text-base leading-none">◇</span>
+        <span class="mt-0.5">はなす</span>
+      </button>
+      <button class="flex flex-col items-center text-stone-400 text-[10px]" aria-label="わたし">
+        <span class="text-base leading-none">△</span>
+        <span class="mt-0.5">わたし</span>
+      </button>
+    </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, computed, nextTick } from 'vue';
+import mascotSit from './assets/mascot-sit.svg';
+import mascotSleep from './assets/mascot-sleep.svg';
+import mascotFish from './assets/mascot-fish.svg';
 
 const isLoading = ref(false);
 const messages = ref([]);
 const inputText = ref('');
 const chatContainer = ref(null);
+
+const mascotState = ref('idle');
+
+const mascotImage = computed(() => {
+  switch (mascotState.value) {
+    case 'thinking': return mascotSleep;
+    case 'happy':    return mascotFish;
+    default:         return mascotSit;
+  }
+});
 
 const scrollToBottom = async () => {
   await nextTick();
@@ -88,34 +127,23 @@ const sendMessage = async () => {
   const userMessage = inputText.value.trim();
   if (!userMessage || isLoading.value) return;
 
-  // ユーザーメッセージを追加
-  messages.value.push({
-    role: 'user',
-    content: userMessage,
-  });
-
+  messages.value.push({ role: 'user', content: userMessage });
   inputText.value = '';
   isLoading.value = true;
+  mascotState.value = 'thinking';
+
   await scrollToBottom();
 
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: userMessage,
-        history: messages.value.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        history: messages.value.map(m => ({ role: m.role, content: m.content })),
       }),
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -123,105 +151,62 @@ const sendMessage = async () => {
 
     while (true) {
       const { done, value } = await reader.read();
-      
-      if (done) {
-        break;
-      }
+      if (done) break;
 
-      // デコードしてバッファに追加
       buffer += decoder.decode(value, { stream: true });
-
-      // SSE形式のデータを解析
       const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // 最後の不完全な行をバッファに戻す
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            
-            if (data.error) {
-              throw new Error(data.error);
-            }
-            
-            if (data.done) {
-              // ストリーム終了
-              break;
-            }
-            
-            // complete: trueのデータを受信したら、新しい吹き出しを作成
-            if (data.complete && data.text && data.text.trim()) {
-              // 新しい吹き出しを作成
-              messages.value.push({
-                role: 'assistant',
-                content: data.text,
-                fadeIn: true  // アニメーション用フラグ
-              });
-              
-              // 自動スクロール
-              await nextTick();
-              await scrollToBottom();
-              
-              // 1.5秒待つ
-              await new Promise(resolve => setTimeout(resolve, 1500));
-              
-              // アニメーション用フラグを削除（次のメッセージのために）
-              const lastIndex = messages.value.length - 1;
-              if (messages.value[lastIndex]) {
-                // フラグは次のTickで削除されるので、ここでは保持
-              }
-            }
-          } catch (e) {
-            // JSONパースエラーは無視（不完全なデータの場合）
-            console.error('Error parsing SSE data:', e);
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.error) throw new Error(data.error);
+          if (data.done) break;
+
+          if (data.complete && data.text && data.text.trim()) {
+            messages.value.push({
+              role: 'assistant',
+              content: data.text,
+              fadeIn: true,
+            });
+            await new Promise(r => setTimeout(r, 1500));
           }
+        } catch (e) {
+          console.error('Error parsing SSE data:', e);
         }
       }
     }
 
-    // 残りのバッファを処理
     if (buffer.trim()) {
       const lines = buffer.split('\n');
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            
-            // complete: trueのデータを受信したら、新しい吹き出しを作成
-            if (data.complete && data.text && data.text.trim()) {
-              messages.value.push({
-                role: 'assistant',
-                content: data.text,
-                fadeIn: true
-              });
-              
-              await nextTick();
-              await scrollToBottom();
-              await new Promise(resolve => setTimeout(resolve, 1500));
-            }
-          } catch (e) {
-            console.error('Error parsing final SSE data:', e);
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.complete && data.text && data.text.trim()) {
+            messages.value.push({
+              role: 'assistant',
+              content: data.text,
+              fadeIn: true,
+            });
+            await new Promise(r => setTimeout(r, 1500));
           }
+        } catch (e) {
+          console.error('Error parsing final SSE data:', e);
         }
       }
     }
-
   } catch (error) {
     console.error('Error sending message:', error);
-    // エラーメッセージを表示
     messages.value.push({
       role: 'assistant',
-      content: 'すみません、エラーが発生しました。もう一度お試しください。',
-      fadeIn: true
+      content: 'すみません、すこし通信に失敗しました。もういちどお試しください。',
+      fadeIn: true,
     });
-    await scrollToBottom();
   } finally {
     isLoading.value = false;
-    await scrollToBottom();
+    mascotState.value = 'happy';
   }
 };
-
-onMounted(() => {
-  scrollToBottom();
-});
 </script>

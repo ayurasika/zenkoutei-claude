@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- 体 -->
+  <ellipse cx="100" cy="135" rx="62" ry="52" fill="#DCE6EF" />
+  <!-- 頭 -->
+  <circle cx="100" cy="85" r="55" fill="#DCE6EF" />
+  <!-- お腹 -->
+  <ellipse cx="100" cy="145" rx="42" ry="33" fill="#F5F1EA" />
+  <!-- きらきら -->
+  <text x="40" y="55" font-family="sans-serif" font-size="14" fill="#E8C77A">✦</text>
+  <text x="155" y="60" font-family="sans-serif" font-size="14" fill="#E8C77A">✦</text>
+  <text x="170" y="100" font-family="sans-serif" font-size="10" fill="#E8C77A">✦</text>
+  <!-- にっこり目（半月） -->
+  <path d="M 73 86 Q 80 80 87 86" stroke="#3F4A55" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  <path d="M 113 86 Q 120 80 127 86" stroke="#3F4A55" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  <!-- ほっぺ -->
+  <ellipse cx="72" cy="98" rx="7" ry="5" fill="#F5C6C9" opacity="0.85" />
+  <ellipse cx="128" cy="98" rx="7" ry="5" fill="#F5C6C9" opacity="0.85" />
+  <!-- 口 -->
+  <ellipse cx="100" cy="105" rx="4" ry="3" fill="#3F4A55" opacity="0.7" />
+  <!-- 抱えてる魚 -->
+  <ellipse cx="100" cy="155" rx="22" ry="11" fill="#A8C5DD" />
+  <polygon points="78,155 68,148 68,162" fill="#A8C5DD" />
+  <circle cx="112" cy="153" r="2" fill="#3F4A55" />
+  <!-- 手 -->
+  <ellipse cx="75" cy="148" rx="14" ry="10" fill="#DCE6EF" transform="rotate(-25 75 148)" />
+  <ellipse cx="125" cy="148" rx="14" ry="10" fill="#DCE6EF" transform="rotate(25 125 148)" />
+</svg>
